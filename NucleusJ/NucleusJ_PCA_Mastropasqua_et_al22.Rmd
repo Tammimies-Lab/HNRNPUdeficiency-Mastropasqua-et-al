@@ -1,0 +1,166 @@
+---
+title: "PCA_NucleusJ_analysis"
+author: "F Mastropasqua"
+date: "04/10/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+#install.packages("factoextra")
+library(factoextra)
+
+#clean environment
+rm(list=ls())
+#Data frames
+
+df <- read.csv("./NucleusJ_df_D0_D28.txt", sep=",", header = TRUE)
+
+#select column with the parameters
+df.pca <- prcomp(df[,c(9:23)], scale = TRUE)
+summary(df.pca)
+plot(df.pca, type="l", "PCA general_ASD_CTRL")
+
+df_2 <- cbind(df,df.pca$x[,1:15])
+
+ggplot(df_2, aes(PC1, PC2, shape=Treatment, fill=CellLine))+
+  stat_ellipse(geom="polygon", col="black", alpha=0.5)+
+  geom_point(shape=21, col="black")+ggtitle("PCA_NucleusJ")
+cor(df[,9:23], df_2[29:32])
+
+
+#find outliers (sample name with "print" and row number with "which")
+print(df_2[df_2$PC2 < -10,])
+which(df_2$PC2 < -10)
+print(df_2[df_2$PC1 > 8,])
+which(df_2$PC1 > 8)
+summary(df_2)
+
+#remove PC1/PC2 outliers
+df_3 <- df_2[(df_2$PC2 > -10 & df_2$PC1 < 8),]
+df.pca2 <-prcomp(df_3[,c(9:23)], scale = TRUE)
+summary(df.pca2)
+plot(df.pca2, type="l", "PCA w/o ouliers_ASD_CTRL")
+
+#add the new PCA to the dataframe without outliers
+df_3 <- cbind(df_3[,c(1:23)],df.pca2$x[,1:15])
+
+ggplot(df_3, aes(PC1, PC2, col=CellLine, fill=CellLine))+
+  stat_ellipse(geom="polygon", col="black", alpha=0.5)+
+  geom_point(shape=21, col="black")+ggtitle("PCA_NucleusJ_w/o outliers")
+cor(df_3[,9:23], df_3[24:27])
+
+
+ALL_VAR <- fviz_pca_var(df.pca2,
+                       col.var = "contrib", # Color by contributions to the PC
+                       gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                       repel = TRUE,     # Avoid text overlapping
+                       title = "Variables_PCA"
+)
+ALL_VAR
+
+#create a df without outliers and without PCA values
+dfNO <- df[c(1:133,135:137,139:707, 709:740, 742:944, 946:955, 957:1422),]
+
+#subsetdfNO according to the Day
+##D0
+dfNO_0 <- dfNO[dfNO$Day=="0",]
+dfNO_0 <-dfNO_0[complete.cases(dfNO_0$Sample),]
+df.pca0 <- prcomp(dfNO_0[,c(9:23)], scale = TRUE)
+summary(df.pca0)
+plot(df.pca2, type="l", "D0_PCA w/o ouliers")
+
+df_0 <- cbind(dfNO_0,df.pca0$x[,1:15])
+
+
+
+
+```
+
+HNRNPUdel/+ vs CTRL
+
+
+```{r}
+#D0
+dfNO_0Basic <- dfNO_0[dfNO_0$Treatment=="n/a",]
+dfNO_0Basic <-dfNO_0Basic[complete.cases(dfNO_0Basic$Sample),]
+df.pca0B <- prcomp(dfNO_0Basic[,c(9:23)], scale = TRUE)
+summary(df.pca0B)
+plot(df.pca0B, type="l", "Basic_D0_w/o ouliers")
+
+df_0B <- cbind(dfNO_0Basic,df.pca0B$x[,1:15])
+
+D0_VAR <- fviz_pca_var(df.pca0B,
+                        col.var = "contrib", # Color by contributions to the PC
+                        gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                        repel = TRUE,     # Avoid text overlapping
+                        title = "Variables_Basic_D0_w/o ouliers"
+)
+D0_VAR
+
+#D28 (Plot in Figure 4A)
+dfNO_28Basic <- dfNO[dfNO$Treatment=="n/a"&dfNO$Day==28,]
+dfNO_28Basic <-dfNO_28Basic[complete.cases(dfNO_28Basic$Sample),]
+df.pca28B <- prcomp(dfNO_28Basic[,c(9:23)], scale = TRUE)
+summary(df.pca28B)
+plot(df.pca28B, type="l", "Basic_D28_PCA w/o ouliers")
+
+df_28B <- cbind(dfNO_28Basic,df.pca28B$x[,1:15])
+
+D28_VAR <- fviz_pca_var(df.pca28B,
+                       col.var = "contrib", # Color by contributions to the PC
+                       gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                       repel = TRUE,     # Avoid text overlapping
+                       title = "Variables_Basic_D28_PCA w/o ouliers"
+)
+D28_VAR
+```
+
+siHNRNPU vs siNTC
+
+```{r}
+#D0 
+dfNO_0si <- dfNO_0[!(dfNO_0$Treatment=="n/a"),]
+df.pca0si <- prcomp(dfNO_0si[,c(9:23)], scale = TRUE)
+summary(df.pca0si)
+plot(df.pca0si, type="l", "siRNA_D0_PCA w/o ouliers")
+
+df_0si <- cbind(dfNO_0si,df.pca0si$x[,1:15])
+
+siD0_VAR <- fviz_pca_var(df.pca0si,
+                       col.var = "contrib", # Color by contributions to the PC
+                       gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                       repel = TRUE,     # Avoid text overlapping
+                       title = "Variables_siRNA_D0_PCA w/o ouliers"
+)
+siD0_VAR
+
+BI_siD0 <-fviz_pca_biplot(df.pca0si, repel = TRUE,
+                col.var = "#2E9FDF", # Variables color
+                col.ind = "cos2",# Individuals color
+                gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07")
+)
+BI_siD0
+
+#D28 (Plot in Figure 4A)
+dfNO_28si <- dfNO[!(dfNO$Treatment=="n/a"&dfNO$Day==28),]
+dfNO_28si <-dfNO_28si[complete.cases(dfNO_28si$Sample),]
+df.pca28si <- prcomp(dfNO_28si[,c(9:23)], scale = TRUE)
+summary(df.pca28si)
+plot(df.pca28si, type="l", "siRNA_D28_PCA w/o ouliers")
+
+df_28si <- cbind(dfNO_28si,df.pca28si$x[,1:15])
+
+siD28_VAR <- fviz_pca_var(df.pca28si,
+                         col.var = "contrib", # Color by contributions to the PC
+                         gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+                         repel = TRUE,     # Avoid text overlapping
+                         title = "Variables_siRNA_D28_PCA w/o ouliers"
+)
+siD28_VAR
+
+```
+
