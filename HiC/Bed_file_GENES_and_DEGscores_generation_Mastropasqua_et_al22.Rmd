@@ -1,0 +1,51 @@
+---
+title: "Bed_file_Genes_and_DEG_generation"
+author: "F Mastropasqua"
+date: "10/5/2022"
+output: html_document
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(BiocManager)
+```
+
+```{r}
+genes <- read.delim("./HiC_files/genes_annotated_GRCh37.bed")
+
+gene_bed="./HiC_files/Genes_GRCh37.kgAlias.longest.bed"
+
+gene_bed_df=read.table(gene_bed, sep="\t")
+
+colnames(gene_bed_df)=c("chr","start","end","gene","score","strand")
+
+DEG_D28<-read.csv("../Gene_Enrichment_Analysis/DEG_ASD12D28_vs_CTRL9D28.csv", sep = ",", row.names = 1)
+colnames(DEG_D28)[9] <- "gene"
+DEG_D28[,c(3,4,5,7,8)] <- NULL
+DEG_D28 <- DEG_D28[complete.cases(DEG_D28$padj),] #remove rows with NA 
+
+#include also the not expressed genes so they can be shown in the figure
+merged_df=left_join(gene_bed_df, DEG_D28, by="gene")
+
+merged_df[is.na(merged_df)]<- 0 #if some rows have "NA" make it "0"
+
+#attribute arbitrary scores for genes not expressed, upregulated or downregulated. Choose the value according to the chosen color scale
+merged_df$score = ifelse(merged_df$baseMean<20, 620, ifelse(merged_df$log2FoldChange < -0.58 & merged_df$baseMean>20, 0, ifelse(merged_df$log2FoldChange > 0.58 & merged_df$baseMean>20 , 280, 700)))
+write.csv(merged_df, "all_genes_annotated_D28_HNRNPUdel_DeSeq2_score")
+
+# save as bed6
+merged_bed=merged_df[,c(1:6)]
+fname="Genes_GRCh37.kgAlias.longest.DEscore.notExpr.bed"
+
+write.table(merged_bed, fname, sep="\t", append = FALSE, quote = FALSE,
+            eol = "\n", na = "NA", dec = ".", row.names = FALSE,
+            col.names = FALSE, fileEncoding = "")
+
+```
+

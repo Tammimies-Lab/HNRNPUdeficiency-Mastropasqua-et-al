@@ -1,0 +1,304 @@
+---
+title: "Gene_Enrichment_Analysis"
+author: "F Mastropasqua"
+date: "10/5/2022"
+output: html_document
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library("dplyr")
+```
+
+```{r}
+SFARI_sel_list <- read.csv("./SFARI_release_072022_list.txt", header = TRUE)
+DD_list <- read.csv("./NDD_list.txt", header = FALSE)
+EPI_list <- read.csv("./Epi_List_2.547_list.txt", header = T)
+ID_list <- read.csv("./ID_list_3.1632_list.txt", header = T)
+```
+
+##D28
+
+Gene lists of interest: 
+-DEGs
+```{r}
+#HNRNPUdel/+ vs CTRL D28
+DEG_D28 <- read.csv("./DEG_ASD12D28_vs_CTRL9D28.csv", sep=,)
+DEG_D28sig <- DEG_D28[DEG_D28$baseMean> 20 & DEG_D28$padj < 0.05,]
+DEG_D28sig_all <- DEG_D28sig[DEG_D28sig$log2FoldChange< -0.58 | DEG_D28sig$log2FoldChange> 0.58,]
+DEG_D28sig_all <- filter(DEG_D28sig, ensembl != "NA")
+DEG_D28sig_all <- DEG_D28sig_all[,8]
+
+#siHNRNPU vs siNTC D28
+DEG_siD28 <- read.csv("./DEG_si28_NO_outlier.csv", sep=,)
+DEG_siD28sig <- DEG_siD28[DEG_siD28$baseMean> 20 & DEG_siD28$padj < 0.05,]
+DEG_siD28sig_all <- DEG_siD28sig[DEG_siD28sig$log2FoldChange< -0.58 | DEG_siD28sig$log2FoldChange> 0.58,]
+DEG_siD28sig_all <- filter(DEG_siD28sig, ensembl != "NA")
+DEG_siD28sig_all <- DEG_siD28sig_all[,8]
+```
+
+-Genes in switched compartment 
+```{r}
+concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D28 <- read_csv("../HiC/HiC_files/concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D28.csv")
+concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D28 <- read_csv("../HiC/HiC_files/concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D28.csv")
+expressed_FC_GENES_BtoA_switch_regions_D28 <- read_csv("../HiC/HiC_files/expressed_FC_GENES_BtoA_switch_regions_D28.csv")
+expressed_FC_GENES_AtoB_switch_regions_D28 <- read_csv("../HiC/HiC_files/expressed_FC_GENES_AtoB_switch_regions_D28.csv")
+```
+
+--Joined lists genes in switched compartment: 
+```{r}
+concordant <- as.data.frame(unique(c(concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D28$ensembl, concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D28$ensembl)))
+expressed <- as.data.frame(unique(c(expressed_FC_GENES_AtoB_switch_regions_D28$ensembl, expressed_FC_GENES_BtoA_switch_regions_D28$ensembl)))
+colnames(concordant) <- "ensembl"
+colnames(expressed) <- "ensembl"
+```
+
+Background gene list of HNRNPUdel/+ vs CTRL at  D28
+
+```{r}
+all_D28 <- read.csv("./D28_all_expressed_genes.txt", header = T)
+backgroundGeneList <-all_D28
+```
+
+Enrichment of HNRNPUdel/+ vs CTRL DEGs at D28
+
+```{r}
+#SFARI_sel (SFARI scores: S,1,2)
+m <- nrow(SFARI_sel_list)
+n <- length(setdiff(backgroundGeneList$ensembl,SFARI_sel_list$gene))
+q <- length(intersect(DEG_D28sig_all,SFARI_sel_list$gene)) - 1
+k <- length(DEG_D28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+#DD
+m <- nrow(DD_list)
+n <- length(setdiff(backgroundGeneList$ensembl,DD_list$gene))
+q <- length(intersect(DEG_D28sig_all,DD_list$gene)) - 1
+k <- length(DEG_D28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+#EPI
+m <- nrow(EPI_list)
+n <- length(setdiff(backgroundGeneList$ensembl,EPI_list$gene))
+q <- length(intersect(DEG_D28sig_all,EPI_list$gene)) - 1
+k <- length(DEG_D28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+#ID
+m <- nrow(ID_list)
+n <- length(setdiff(backgroundGeneList$ensembl,ID_list$gene))
+q <- length(intersect(DEG_D28sig_all,ID_list$gene)) - 1
+k <- length(DEG_D28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+```
+
+Enrichment of HNRNPUdel/+ vs CTRL genes in switched compartment at D28
+```{r}
+source("enrichment_phyper.R")
+
+#SFARI sel
+CAB <- enrichment_phyper(SFARI_list_NEW, concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D28, backgroundGeneList)
+CBA <- enrichment_phyper(SFARI_list_NEW, concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D28, backgroundGeneList)
+EAB <- enrichment_phyper(SFARI_list_NEW, expressed_FC_GENES_AtoB_switch_regions_D28, backgroundGeneList)
+EBA <- enrichment_phyper(SFARI_list_NEW, expressed_FC_GENES_BtoA_switch_regions_D28, backgroundGeneList)
+conc <- enrichment_phyper(SFARI_list_NEW, concordant, backgroundGeneList)
+expr <- enrichment_phyper(SFARI_list_NEW, expressed, backgroundGeneList)
+SFARI <- rep("SFARI", 3)
+variable <- c("p-value", "q", "m")
+RES_SFARI <- data.frame(NDD_list = SFARI, variable = variable, ConcordantAtoB = CAB, ConcordantBtoA = CBA, ExpressedAtoB = EAB, ExpressedBtoA = EBA, Concordant = conc, Expressed = expr)
+
+#ID 
+CAB <- enrichment_phyper(ID_list, concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D28, backgroundGeneList)
+CBA <- enrichment_phyper(ID_list, concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D28, backgroundGeneList)
+EAB <- enrichment_phyper(ID_list, expressed_FC_GENES_AtoB_switch_regions_D28, backgroundGeneList)
+EBA <- enrichment_phyper(ID_list, expressed_FC_GENES_BtoA_switch_regions_D28, backgroundGeneList)
+conc <- enrichment_phyper(ID_list, concordant, backgroundGeneList)
+expr <- enrichment_phyper(ID_list, expressed, backgroundGeneList)
+ID <- rep("ID", 3)
+variable <- c("p-value", "q", "m")
+RES_ID <- data.frame(NDD_list = ID, variable = variable, ConcordantAtoB = CAB, ConcordantBtoA = CBA, ExpressedAtoB = EAB, ExpressedBtoA = EBA, Concordant = conc, Expressed = expr)
+
+#EPI
+CAB <- enrichment_phyper(EPI_list_NEW, concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D28, backgroundGeneList)
+CBA <- enrichment_phyper(EPI_list_NEW, concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D28, backgroundGeneList)
+EAB <- enrichment_phyper(EPI_list_NEW, expressed_FC_GENES_AtoB_switch_regions_D28, backgroundGeneList)
+EBA <- enrichment_phyper(EPI_list_NEW, expressed_FC_GENES_BtoA_switch_regions_D28, backgroundGeneList)
+conc <- enrichment_phyper(EPI_list_NEW, concordant, backgroundGeneList)
+expr <- enrichment_phyper(EPI_list_NEW, expressed, backgroundGeneList)
+EPI <- rep("EPI", 3)
+variable <- c("p-value", "q", "m")
+RES_EPI <- data.frame(NDD_list = EPI, variable = variable, ConcordantAtoB = CAB, ConcordantBtoA = CBA, ExpressedAtoB = EAB, ExpressedBtoA = EBA, Concordant = conc, Expressed = expr)
+
+#DD
+CAB <- enrichment_phyper(DD_list, concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D28, backgroundGeneList)
+CBA <- enrichment_phyper(DD_list, concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D28, backgroundGeneList)
+EAB <- enrichment_phyper(DD_list, expressed_FC_GENES_AtoB_switch_regions_D28, backgroundGeneList)
+EBA <- enrichment_phyper(DD_list, expressed_FC_GENES_BtoA_switch_regions_D28, backgroundGeneList)
+conc <- enrichment_phyper(DD_list, concordant, backgroundGeneList)
+expr <- enrichment_phyper(DD_list, expressed, backgroundGeneList)
+DD <- rep("DD", 3)
+variable <- c("p-value", "q", "m")
+RES_DD <- data.frame(NDD_list = DD, variable = variable, ConcordantAtoB = CAB, ConcordantBtoA = CBA, ExpressedAtoB = EAB, ExpressedBtoA = EBA, Concordant = conc, Expressed = expr)
+```
+
+```{r}
+df_list <- list(RES_SFARI, RES_ID, RES_EPI, RES_DD)
+ResultsDF <- df_list %>% reduce(full_join)
+write_xlsx(ResultsDF,"../HiCEnrichments.xlsx")
+```
+
+FDR corrections: 
+```{r}
+pvalues <- as.vector(ResultsDF[c(1,4,7,10), 3:8])
+values <- c(pvalues[1,], pvalues[2,], pvalues[3,], pvalues[4,])
+p.adjust(values, method = "fdr")
+```
+
+
+Background gene list of siHNRNPUdel vs siNTC at  D28
+```{r}
+all_siD28 <- read.csv("./siD28_all_expressed_genes.csv", header = T, sep=",")
+backgroundGeneList <-all_siD28
+```
+
+
+```{r}
+#siD28 SFARI_sel
+m <- nrow(SFARI_sel_list)
+n <- length(setdiff(backgroundGeneList$x,SFARI_sel_list$gene))
+q <- length(intersect(DEG_siD28sig_all,SFARI_sel_list$gene)) - 1
+k <- length(DEG_siD28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+#siD28 DD
+m <- nrow(DD_list)
+n <- length(setdiff(backgroundGeneList$x,DD_list$gene))
+q <- length(intersect(DEG_siD28sig_all,DD_list$gene)) - 1
+k <- length(DEG_siD28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+#siD28 EPI
+m <- nrow(EPI_list)
+n <- length(setdiff(backgroundGeneList$x,EPI_list$gene))
+q <- length(intersect(DEG_siD28sig_all,EPI_list$gene)) - 1
+k <- length(DEG_siD28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+#siD28 ID
+m <- nrow(ID_list)
+n <- length(setdiff(backgroundGeneList$x,ID_list$gene))
+q <- length(intersect(DEG_siD28sig_all,ID_list$gene)) - 1
+k <- length(DEG_siD28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+
+ResultsDF <-read.csv("phyper_D28_results.txt", header=T, sep="\t")       
+pvalues <- as.vector(ResultsDF$pvalue)
+p.adjust(pvalues, method = "fdr")
+
+```
+
+##D0
+
+Background:
+```{r}
+D0_all_expressed_genes <- read_excel("./D0_all_expressed_genes.csv")
+backgroundGeneList <- as.data.frame(D0_all_expressed_genes$ensembl_gene_id)
+```
+
+
+Gene lists of interest: 
+```{r}
+concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D0 <- read_csv("/HiC/concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D0.csv")
+concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D0 <- read_csv("/HiC/concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D0.csv")
+expressed_FC_GENES_AtoB_switch_regions_D0 <- read_csv("/HiC/expressed_FC_GENES_AtoB_switch_regions_D0.csv")
+expressed_FC_GENES_BtoA_switch_regions_D0 <- read_csv("/HiC/expressed_FC_GENES_BtoA_switch_regions_D0.csv")
+names(concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D0)[names(concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D0) == 'ensembl.1'] <- 'ensembl'
+names(concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D0)[names(concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D0) == 'ensembl.1'] <- 'ensembl'
+names(expressed_FC_GENES_AtoB_switch_regions_D0)[names(expressed_FC_GENES_AtoB_switch_regions_D0) == 'ensembl.1'] <- 'ensembl'
+names(expressed_FC_GENES_BtoA_switch_regions_D0)[names(expressed_FC_GENES_BtoA_switch_regions_D0) == 'ensembl.1'] <- 'ensembl'
+
+#Joined lists: 
+
+concordant <- as.data.frame(unique(c(concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D0$ensembl, concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D0$ensembl)))
+expressed <- as.data.frame(unique(c(expressed_FC_GENES_AtoB_switch_regions_D0$ensembl, expressed_FC_GENES_BtoA_switch_regions_D0$ensembl)))
+colnames(concordant) <- "ensembl"
+colnames(expressed) <- "ensembl"
+```
+
+SFARI:
+
+```{r}
+CAB <- enrichment_phyper(SFARI_list_NEW, concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D0, backgroundGeneList)
+CBA <- enrichment_phyper(SFARI_list_NEW, concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D0, backgroundGeneList)
+EAB <- enrichment_phyper(SFARI_list_NEW, expressed_FC_GENES_AtoB_switch_regions_D0, backgroundGeneList)
+EBA <- enrichment_phyper(SFARI_list_NEW, expressed_FC_GENES_BtoA_switch_regions_D0, backgroundGeneList)
+conc <- enrichment_phyper(SFARI_list_NEW, concordant, backgroundGeneList)
+expr <- enrichment_phyper(SFARI_list_NEW, expressed, backgroundGeneList)
+SFARI <- rep("SFARI", 3)
+variable <- c("p-value", "q", "m")
+RES_SFARI <- data.frame(NDD_list = SFARI, variable = variable, ConcordantAtoB = CAB, ConcordantBtoA = CBA, ExpressedAtoB = EAB, ExpressedBtoA = EBA, Concordant = conc, Expressed = expr)
+```
+
+ID: 
+
+```{r}
+CAB <- enrichment_phyper(ID_list, concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D0, backgroundGeneList)
+CBA <- enrichment_phyper(ID_list, concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D0, backgroundGeneList)
+EAB <- enrichment_phyper(ID_list, expressed_FC_GENES_AtoB_switch_regions_D0, backgroundGeneList)
+EBA <- enrichment_phyper(ID_list, expressed_FC_GENES_BtoA_switch_regions_D0, backgroundGeneList)
+conc <- enrichment_phyper(ID_list, concordant, backgroundGeneList)
+expr <- enrichment_phyper(ID_list, expressed, backgroundGeneList)
+ID <- rep("ID", 3)
+variable <- c("p-value", "q", "m")
+RES_ID <- data.frame(NDD_list = ID, variable = variable, ConcordantAtoB = CAB, ConcordantBtoA = CBA, ExpressedAtoB = EAB, ExpressedBtoA = EBA, Concordant = conc, Expressed = expr)
+```
+
+EPI: 
+
+```{r}
+CAB <- enrichment_phyper(EPI_list_NEW, concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D0, backgroundGeneList)
+CBA <- enrichment_phyper(EPI_list_NEW, concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D0, backgroundGeneList)
+EAB <- enrichment_phyper(EPI_list_NEW, expressed_FC_GENES_AtoB_switch_regions_D0, backgroundGeneList)
+EBA <- enrichment_phyper(EPI_list_NEW, expressed_FC_GENES_BtoA_switch_regions_D0, backgroundGeneList)
+conc <- enrichment_phyper(EPI_list_NEW, concordant, backgroundGeneList)
+expr <- enrichment_phyper(EPI_list_NEW, expressed, backgroundGeneList)
+EPI <- rep("EPI", 3)
+variable <- c("p-value", "q", "m")
+RES_EPI <- data.frame(NDD_list = EPI, variable = variable, ConcordantAtoB = CAB, ConcordantBtoA = CBA, ExpressedAtoB = EAB, ExpressedBtoA = EBA, Concordant = conc, Expressed = expr)
+```
+
+
+DD: 
+```{r}
+CAB <- enrichment_phyper(DD_list, concordantFC_expressed_DEG_GENES_AtoB_switch_regions_D0, backgroundGeneList)
+CBA <- enrichment_phyper(DD_list, concordantFC_expressed_DEG_GENES_BtoA_switch_regions_D0, backgroundGeneList)
+EAB <- enrichment_phyper(DD_list, expressed_FC_GENES_AtoB_switch_regions_D0, backgroundGeneList)
+EBA <- enrichment_phyper(DD_list, expressed_FC_GENES_BtoA_switch_regions_D0, backgroundGeneList)
+conc <- enrichment_phyper(DD_list, concordant, backgroundGeneList)
+expr <- enrichment_phyper(DD_list, expressed, backgroundGeneList)
+DD <- rep("DD", 3)
+variable <- c("p-value", "q", "m")
+RES_DD <- data.frame(NDD_list = DD, variable = variable, ConcordantAtoB = CAB, ConcordantBtoA = CBA, ExpressedAtoB = EAB, ExpressedBtoA = EBA, Concordant = conc, Expressed = expr)
+```
+
+
+```{r}
+df_list <- list(RES_SFARI, RES_ID, RES_EPI, RES_DD)
+ResultsDF <- df_list %>% reduce(full_join)
+```
+
+```{r}
+write_xlsx(ResultsDF,"../HiCEnrichmentsD0.xlsx")
+```
+
+FDR corrections: 
+
+```{r}
+pvalues <- as.vector(ResultsDF[c(1,4,7,10), 3:8])
+values <- c(pvalues[1,], pvalues[2,], pvalues[3,], pvalues[4,])
+p.adjust(values, method = "fdr")
+```

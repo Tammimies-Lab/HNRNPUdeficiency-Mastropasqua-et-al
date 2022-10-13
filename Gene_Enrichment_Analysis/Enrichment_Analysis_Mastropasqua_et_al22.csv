@@ -1,0 +1,111 @@
+---
+title: "Gene_Enrichment_Analysis"
+author: "F Mastropasqua"
+date: "10/5/2022"
+output: html_document
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library("dplyr")
+```
+
+```{r}
+SFARI_sel_list <- read.csv("/SFARI_release_072022_list.txt", header = TRUE)
+DD_list <- read.csv("/NDD_list.txt", header = FALSE)
+EPI_list <- read.csv("/Epi_List_2.547_list.txt", header = T)
+ID_list <- read.csv("/ID_list_3.1632_list.txt", header = T)
+```
+
+```{r}
+DEG_D28 <- read.csv("/RNAseq/DEG_ASD12D28_vs_CTRL9D28.csv", sep=,)
+all_D28 <- read.csv("/RNAseq/D28_all_expressed_genes.txt", header = T)
+
+DEG_siD28 <- read.csv("/RNAseq/DEG_si28_NO_outlier.csv", sep=,)
+all_siD28 <- read.csv("/RNAseq/siD28_all_expressed_genes.txt", header = T, sep=";")
+```
+
+```{r}
+#D28
+backgroundGeneList <-all_D28
+DEG_D28sig <- DEG_D28[DEG_D28$baseMean> 20 & DEG_D28$padj < 0.05,]
+DEG_D28sig_all <- DEG_D28sig[DEG_D28sig$log2FoldChange< -0.58 | DEG_D28sig$log2FoldChange> 0.58,]
+DEG_D28sig_all <- filter(DEG_D28sig, ensembl != "NA")
+DEG_D28sig_all <- DEG_D28sig_all[,8]
+
+#SFARI_sel
+m <- nrow(SFARI_sel_list)#length if it is a vector, nrow if it is a df
+n <- length(setdiff(backgroundGeneList$ensembl,SFARI_sel_list$gene))
+q <- length(intersect(DEG_D28sig_all,SFARI_sel_list$gene)) - 1
+k <- length(DEG_D28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+#DD
+m <- nrow(DD_list)
+n <- length(setdiff(backgroundGeneList$ensembl,DD_list$gene))
+q <- length(intersect(DEG_D28sig_all,DD_list$gene)) - 1
+k <- length(DEG_D28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+#EPI
+m <- nrow(EPI_list)
+n <- length(setdiff(backgroundGeneList$ensembl,EPI_list$gene))
+q <- length(intersect(DEG_D28sig_all,EPI_list$gene)) - 1
+k <- length(DEG_D28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+#ID
+m <- nrow(ID_list)
+n <- length(setdiff(backgroundGeneList$ensembl,ID_list$gene))
+q <- length(intersect(DEG_D28sig_all,ID_list$gene)) - 1
+k <- length(DEG_D28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+```
+
+
+```{r}
+#siD28
+backgroundGeneList <-all_siD28
+DEG_siD28sig <- DEG_siD28[DEG_siD28$baseMean> 20 & DEG_siD28$padj < 0.05,]
+DEG_siD28sig_all <- DEG_siD28sig[DEG_siD28sig$log2FoldChange< -0.58 | DEG_siD28sig$log2FoldChange> 0.58,]
+DEG_siD28sig_all <- filter(DEG_siD28sig, ensembl != "NA")
+DEG_siD28sig_all <- DEG_siD28sig_all[,8]
+
+#siD28 SFARI_sel
+m <- nrow(SFARI_sel_list)#length if it is a vector, nrow if it is a df
+n <- length(setdiff(backgroundGeneList$x,SFARI_sel_list$gene))
+q <- length(intersect(DEG_siD28sig_all,SFARI_sel_list$gene)) - 1
+k <- length(DEG_siD28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+#siD28 DD
+m <- nrow(DD_list)
+n <- length(setdiff(backgroundGeneList$x,DD_list$gene))
+q <- length(intersect(DEG_siD28sig_all,DD_list$gene)) - 1
+k <- length(DEG_siD28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+#siD28 EPI
+m <- nrow(EPI_list)
+n <- length(setdiff(backgroundGeneList$x,EPI_list$gene))
+q <- length(intersect(DEG_siD28sig_all,EPI_list$gene)) - 1
+k <- length(DEG_siD28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+#siD28 ID
+m <- nrow(ID_list)
+n <- length(setdiff(backgroundGeneList$x,ID_list$gene))
+q <- length(intersect(DEG_siD28sig_all,ID_list$gene)) - 1
+k <- length(DEG_siD28sig_all)
+phyper(q,m,n,k, lower.tail = FALSE)
+
+
+ResultsDF <-read.csv("phyper_D28_results.txt", header=T, sep="\t")       
+pvalues <- as.vector(ResultsDF$pvalue)
+p.adjust(pvalues, method = "fdr")
+
+```
+
