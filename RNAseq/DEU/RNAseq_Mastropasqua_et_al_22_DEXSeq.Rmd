@@ -1,0 +1,278 @@
+---
+title: "DEXSeq"
+author: "Marika Oksanen"
+date: "2022-09-15"
+output: html_document
+---
+
+This markdown includes DEXSeq analysis between HNRNPU deficiency models and their respective neurotypical controls at D0, D5 and D28. 
+
+Please note that HNRNPUdel is occasionally referred as ASD12BII
+
+```{r}
+library(DEXSeq)
+library(tidyverse)
+```
+
+## DEXSeq 
+
+#### D0
+
+Load count files to R environment:
+
+```{r}
+countFiles = list.files("countfiles/HNRNPUdelD0", pattern=".txt$", full.names=TRUE)
+```
+
+```{r}
+flattenedFile = list.files(pattern="gff$", full.names=TRUE)
+```
+
+```{r}
+sample_info <- read.delim("Sample_info.txt", header=TRUE)
+```
+
+```{r}
+sample_info <- sample_info[c(1:5,9:13),]
+sample_info <- separate(sample_info, "User.ID", into = c("sample_number", "cell_line", "timepoint"), sep = "_", remove = FALSE )
+ReplicateNumber <- c(1:5, 1:5)
+rownames(sample_info) <- paste(sample_info$cell_line, ReplicateNumber, sep = "_")
+names(sample_info)[names(sample_info) == "cell_line"] <- "condition"
+```
+
+Preparing DEXSeq data set:
+
+```{r}
+dxd_D0 = DEXSeqDataSetFromHTSeq(
+   countFiles,
+   sampleData=sample_info,
+   design= ~ sample + exon + condition:exon,
+   flattenedfile=flattenedFile )
+```
+
+dispersion estimation:
+```{r}
+dxd_D0 <- estimateSizeFactors(dxd_D0)
+dxd_D0 <- estimateDispersions(dxd_D0)
+plotDispEsts(dxd_D0)
+```
+
+Performing dexseq with default settings:
+```{r}
+dxr_D0 = DEXSeq(dxd_D0)
+```
+
+
+
+#### D5
+
+Load D5 count files to R environment:
+
+```{r}
+countFiles = list.files("countfiles/HNRNPUdelD5", pattern=".txt$", full.names=TRUE)
+```
+
+```{r}
+sample_info <- read.delim("Sample_info.txt", header=TRUE)
+```
+
+```{r}
+sample_info <- sample_info[c(6:8,14:17,35:37),]
+sample_info <- separate(sample_info, "User.ID", into = c("sample_number", "cell_line", "timepoint"), sep = "_", remove = FALSE )
+sample_info <- sample_info[rev(order(sample_info$cell_line)),]
+ReplicateNumber <- c(1:5, 1:5)
+rownames(sample_info) <- paste(sample_info$cell_line, ReplicateNumber, sep = "_")
+names(sample_info)[names(sample_info) == "cell_line"] <- "condition"
+```
+
+Preparing DEXSeq data set:
+
+```{r}
+dxd_D5 = DEXSeqDataSetFromHTSeq(
+   countFiles,
+   sampleData=sample_info,
+   design= ~ sample + exon + condition:exon,
+   flattenedfile=flattenedFile )
+```
+
+dispersion estimation:
+```{r}
+dxd_D5 <- estimateSizeFactors(dxd_D5)
+dxd_D5 <- estimateDispersions(dxd_D5)
+plotDispEsts(dxd_D5)
+```
+
+Performing dexseq with default settings:
+```{r}
+dxr_D5 = DEXSeq(dxd_D5)
+```
+
+
+#### D28
+
+Load count files to R environment:
+
+```{r}
+countFiles = list.files("countfiles/HNRNPUdelD28", pattern=".txt$", full.names=TRUE)
+```
+
+```{r}
+sample_info <- read.delim("Sample_infoD28.txt", header=TRUE)
+```
+
+```{r}
+sample_info <- sample_info[44:49,]
+sample_info <- separate(sample_info, "User.ID", into = c("sample_number", "cell_line", "timepoint"), sep = "_", remove = FALSE )
+sample_info <- sample_info[rev(order(sample_info$cell_line)),]
+ReplicateNumber <- c(1:3, 1:3)
+rownames(sample_info) <- paste(sample_info$cell_line, ReplicateNumber, sep = "_")
+names(sample_info)[names(sample_info) == "cell_line"] <- "condition"
+```
+
+Preparing DEXSeq data set:
+```{r}
+dxd_D28 = DEXSeqDataSetFromHTSeq(
+   countFiles,
+   sampleData=sample_info,
+   design= ~ sample + exon + condition:exon,
+   flattenedfile=flattenedFile )
+```
+
+dispersion estimation:
+```{r}
+dxd_D28 <- estimateSizeFactors(dxd_D28)
+dxd_D28 <- estimateDispersions(dxd_D28)
+plotDispEsts(dxd_D28)
+```
+
+Performing dexseq with default settings:
+```{r}
+dxr_D28 = DEXSeq(dxd_D28)
+```
+
+
+#### siRNA D0
+
+Load count files to R environment:
+
+```{r}
+countFiles = list.files("countfiles/siHNRNPUD0", pattern=".txt$", full.names=TRUE)
+```
+
+```{r}
+sample_info <- read.delim("Sample_info.txt", header=TRUE)
+```
+
+```{r}
+sample_info <- sample_info[c(18:20,26:30,38,39),]
+sample_info <- separate(sample_info, "User.ID", into = c("sample_number", "cell_line", "treatment", "timepoint"), sep = "_", remove = FALSE )
+sample_info <- sample_info[order(sample_info$treatment, decreasing = TRUE),]
+ReplicateNumber <- c(1:5, 1:5)
+rownames(sample_info) <- paste(sample_info$treatment, ReplicateNumber, sep = "_")
+names(sample_info)[names(sample_info) == "treatment"] <- "condition"
+```
+
+Preparing DEXSeq data set:
+
+```{r}
+dxd_siRNAD0 = DEXSeqDataSetFromHTSeq(
+   countFiles,
+   sampleData=sample_info,
+   design= ~ sample + exon + condition:exon,
+   flattenedfile=flattenedFile )
+```
+
+dispersion estimation:
+```{r}
+dxd_siRNAD0 <- estimateSizeFactors(dxd_siRNAD0)
+dxd_siRNAD0 <- estimateDispersions(dxd_siRNAD0)
+plotDispEsts(dxd_siRNAD0)
+```
+
+Performing dexseq with default settings:
+```{r}
+dxr_siRNAD0 = DEXSeq(dxd_siRNAD0)
+```
+
+#### siRNA D5
+
+Load count files to R environment:
+```{r}
+countFiles = list.files("countfiles/siHNRNPUD5", pattern=".txt$", full.names=TRUE)
+```
+
+```{r}
+sample_info <- read.delim("Sample_info.txt", header=TRUE)
+```
+
+```{r}
+sample_info <- sample_info[c(21:25, 31:34, 40),]
+sample_info <- separate(sample_info, "User.ID", into = c("sample_number", "cell_line", "treatment", "timepoint"), sep = "_", remove = FALSE )
+ReplicateNumber <- c(1:5, 1:5)
+rownames(sample_info) <- paste(sample_info$treatment, ReplicateNumber, sep = "_")
+names(sample_info)[names(sample_info) == "treatment"] <- "condition"
+```
+
+Preparing DEXSeq data set:
+
+```{r}
+dxd_siRNAD5 = DEXSeqDataSetFromHTSeq(
+   countFiles,
+   sampleData=sample_info,
+   design= ~ sample + exon + condition:exon,
+   flattenedfile=flattenedFile )
+```
+
+dispersion estimation:
+```{r}
+dxd_siRNAD5 <- estimateSizeFactors(dxd_siRNAD5)
+dxd_siRNAD5 <- estimateDispersions(dxd_siRNAD5)
+plotDispEsts(dxd_siRNAD5)
+```
+
+Performing dexseq with default settings:
+```{r}
+dxr_siRNAD5 = DEXSeq(dxd_siRNAD5)
+```
+
+
+#### siRNA D28
+
+Load count files to R environment:
+
+```{r}
+countFiles = list.files("countfiles/siHNRNPUD28", pattern=".txt$", full.names=TRUE)
+```
+
+```{r}
+sample_info <- read.delim("Sample_info_siRNAD28.txt", header=TRUE)
+```
+
+```{r}
+sample_info <- sample_info[order(sample_info$StatusHNRNPU, decreasing = FALSE),]
+rownames(sample_info) <- paste(sample_info$StatusHNRNPU, sample_info$ReplicateNumber, sep = "_")
+names(sample_info)[names(sample_info) == "StatusHNRNPU"] <- "condition"
+sample_info <- sample_info[order(rownames(sample_info)),]
+```
+
+Preparing DEXSeq data set:
+
+```{r}
+dxd_siRNAD28 = DEXSeqDataSetFromHTSeq(
+   countFiles,
+   sampleData=sample_info,
+   design= ~ sample + exon + condition:exon,
+   flattenedfile=flattenedFile )
+```
+
+dispersion estimation:
+```{r}
+dxd_siRNAD28 <- estimateSizeFactors(dxd_siRNAD28)
+dxd_siRNAD28 <- estimateDispersions(dxd_siRNAD28)
+plotDispEsts(dxd_siRNAD28)
+```
+
+Performing dexseq with default settings:
+```{r}
+dxr_siRNAD28 = DEXSeq(dxd_siRNAD28)
+```
