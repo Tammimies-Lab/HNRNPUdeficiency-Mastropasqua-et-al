@@ -4,6 +4,9 @@ author: "F Mastropasqua"
 date: "10/4/2022"
 output: html_document
 ---
+```{r}
+
+```
 
 
 ```{r}
@@ -414,3 +417,21 @@ heatmap.2(assay(rld)[topVarGenes,], scale="row",
           dendogram="column",
           col= colorRampPalette( rev(brewer.pal(9,"RdBu")))(255))
 ```
+
+##Generation of ranked files for GSEA analysis
+
+Each "res_***" file was ranked by fold expression in order to generate the input file for the GSEA software.
+
+```{r}
+rnk <- data.frame(HGNC = res_base$hgnc_symbol, LC = res_base$log2FoldChange) #create dataframe with only HGNC names and fold expression
+head(rnk)
+
+rnk <- rnk[order(rnk$LC, decreasing = TRUE),] #rank list by fold expression
+rnk$HGNC[rnk$HGNC==""] <-NA #if some rows have a empty HGNC value, make it "NA"
+rnk <- rnk[complete.cases(rnk$HGNC),] #remove rows with NA in HGNC
+
+#save .rnk file to input in GSEA software (different files were generated, for each comparison of interest)
+write.table(rnk, file = "DEG_si28_HGNC.rnk", sep = "\t", row.names = FALSE, col.names = FALSE, quote = FALSE)
+
+```
+
