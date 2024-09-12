@@ -34,7 +34,7 @@ Francesca Mastropasqua (1,2), Marika Oksanen (1,2), Cristina Soldini (1,2), Shem
 
 *Correspondence: kristiina.tammimies@ki.se
 
-**Preprint available on bioRxiv (doi: https://doi.org/10.1101/2022.09.14.507275)**
+**Published in *Biology Open* (2023), DOI:** [10.1242/bio.060113](https://doi.org/10.1242/bio.060113) | **Pubmed:** [37815090](https://pubmed.ncbi.nlm.nih.gov/37815090/) | **GEO:** [GSE229004](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE229004)
 ***
 Please note that in the scripts the samples are coded as follows:
 
